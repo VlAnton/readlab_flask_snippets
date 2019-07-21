@@ -1,9 +1,9 @@
-from psycopg2.extras import NamedTupleCursor
-from settings import settings
+from werkzeug import FileStorage
 
 import psycopg2 as pg
 import logging
-import json
+
+from settings import settings
 
 
 class PostgresClient:
@@ -29,29 +29,40 @@ class PostgresClient:
 
         return snippets_dict
     
-    def create_snippet(self, code: str, description: str, url: str):
+    def create_snippet(self, request: 'Request', **dict_args: dict) -> None:
+        description: str = dict_args.get('description')
+        code: str or 'FileStorage' = dict_args.get('code', request.files.get('code'))
+        lang: str = dict_args.get('lang')
+
+        if isinstance(code, FileStorage):
+            with open(code.filename, 'r', encoding='utf-8') as f:
+                code: str = f.read()
+
         QUERY = '''
-            INSERT INTO snippets_table(code, description, url)
-            VALUES (%(code)s, %(description)s, %(url)s);
+            INSERT INTO snippets_table(description, lang, code)
+            VALUES (%(description)s, %(lang)s, %(code)s);
         '''
+
         self._execute(
             QUERY,
-            code=code,
+            # url=url,
             description=description,
-            url=url
+            lang=lang,
+            code=code
         )
 
         logging.info('Successfully created')
-
     
-    def _get_dict(self, snippet):
-        print(snippet)
-        return {
+    def _get_dict(self, snippet: 'Record') -> dict:
+        print(type(snippet))
+        result = {
             'snippet_id': snippet.snippet_id,
-            'code': snippet.code,
+            'lang': snippet.lang,
             'description': snippet.description,
-            'url': snippet.url
+            'code': snippet.code
         }
+
+        return result
     
     def _execute(self, query, **kwargs) -> None:
         with self.connection.cursor() as cursor:
@@ -60,9 +71,8 @@ class PostgresClient:
         self.connection.commit()
 
     def _fetch(self, query, **kwargs):
-        with self.connection.cursor(cursor_factory=NamedTupleCursor) as cursor:
+        with self.connection.cursor(cursor_factory=pg.extras.NamedTupleCursor) as cursor:
             cursor.execute(query, kwargs)
-
             fetched = cursor.fetchall()
 
             return fetched

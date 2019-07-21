@@ -1,10 +1,9 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, Request
 
 from psycopg2 import InternalError, ProgrammingError
 
 import logging
 
-# from storage import postgres
 from storage.postgres import postgres
 
 
@@ -19,13 +18,11 @@ def get_snippets():
 
 @app.route('/snippets', methods=['POST'])
 def create_snippet():
-    request_json = request.args
-    # print(['code'])
+    dict_args = dict()
 
-    description = request_json['description']
-    code = request_json['code']
-    url = request_json['url']
+    for field, value in request.form.items():
+        dict_args[field] = value
 
-    postgres.create_snippet(code, description, url)
+    postgres.create_snippet(request, **dict_args)
 
     return jsonify('Snippet is successfully created')
