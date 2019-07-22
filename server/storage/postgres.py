@@ -1,4 +1,8 @@
-from werkzeug import FileStorage
+from werkzeug import FileStorage, ImmutableMultiDict
+
+from psycopg2.extras import NamedTupleCursor
+
+from uuid import uuid4
 
 import psycopg2 as pg
 import logging
@@ -7,6 +11,14 @@ from settings import settings
 
 
 class PostgresClient:
+    ALLOWED_LANGUAGES = {
+        'py': 'python',
+        'js': 'javascript',
+        'php': 'php',
+        'c': 'C',
+        'html': 'html'
+    }
+
     def __init__(self, host, port, dbname, user, password):
         self.connection = pg.connect(
             host=host, port=port, dbname=dbname,
@@ -29,49 +41,80 @@ class PostgresClient:
 
         return snippets_dict
     
-    def create_snippet(self, request: 'Request', **dict_args: dict) -> None:
+    def create_snippet(self, request: 'Request', **dict_args: dict):
+        # TODO: сделать список файлов и поменять базу так, чтобы был foreignKey на таблицу files
+        # В ней будет хранится список файлов и имена
+        files_dict = dict()
+        snippet_uid = str(uuid4())
+
         description: str = dict_args.get('description')
-        code: str or 'FileStorage' = dict_args.get('code', request.files.get('code'))
-        lang: str = dict_args.get('lang')
+        # files: str = dict_args.get('files')
+        # lang: str = dict_args.get('lang')
 
-        if isinstance(code, FileStorage):
-            with open(code.filename, 'r', encoding='utf-8') as f:
-                code: str = f.read()
+        # files_list.append(files)
 
+        for file in request.files.getlist('files'):
+            filename: str = file.filename
+            ext: str = filename.split('.').pop()
+
+            lang: str = self.ALLOWED_LANGUAGES.get(ext)
+
+            if lang:
+                with open(filename, 'r', encoding='utf-8') as f:
+                    file: str = f.read()
+
+                files_dict[lang] = file
+        
         QUERY = '''
-            INSERT INTO snippets_table(description, lang, code)
-            VALUES (%(description)s, %(lang)s, %(code)s);
+            INSERT INTO snippets_table(description, snippet_uid)
+            VALUES (%(description)s, %(snippet_uid)s);
         '''
 
         self._execute(
             QUERY,
-            # url=url,
             description=description,
-            lang=lang,
-            code=code
+            snippet_uid=snippet_uid
         )
 
-        logging.info('Successfully created')
+        self._handle_files(files_dict, snippet_uid)
+
+        logging.info('Snippet is created')
+
+    def _handle_files(self, files_dict: dict, snippet_uid: str):
+        for lang, content in files_dict.items():
+            QUERY = '''
+                INSERT INTO file(content, lang, snippet_uid)
+                VALUES(%(content)s, %(lang)s, %(snippet_uid)s);
+            '''
+
+            self._execute(
+                QUERY,
+                content=content,
+                lang=lang,
+                snippet_uid=snippet_uid
+            )
+        logging.info('Files are handled')
+
     
     def _get_dict(self, snippet: 'Record') -> dict:
-        print(type(snippet))
         result = {
             'snippet_id': snippet.snippet_id,
             'lang': snippet.lang,
             'description': snippet.description,
-            'code': snippet.code
+            'files': snippet.files
         }
 
         return result
     
     def _execute(self, query, **kwargs) -> None:
+        print('SDKJHFKSJDFKJSDN', kwargs)
         with self.connection.cursor() as cursor:
             cursor.execute(query, kwargs)
 
         self.connection.commit()
 
     def _fetch(self, query, **kwargs):
-        with self.connection.cursor(cursor_factory=pg.extras.NamedTupleCursor) as cursor:
+        with self.connection.cursor(cursor_factory=NamedTupleCursor) as cursor:
             cursor.execute(query, kwargs)
             fetched = cursor.fetchall()
 
