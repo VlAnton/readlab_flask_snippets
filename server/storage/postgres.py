@@ -26,7 +26,7 @@ class PostgresClient:
             target_session_attrs='read-write'
         )
 
-    def get_snippets(self):
+    def get_snippets(self) -> list:
         QUERY = '''
             SELECT * FROM snippets_table;
         '''
@@ -34,12 +34,30 @@ class PostgresClient:
         snippets_str = '\n'.join(map(str, snippets))
         logging.info(f'Fetched {len(snippets)} issues:\n{snippets_str}')
 
-        snippets_dict = [
+        return [
             self._get_dict(snippet)
             for snippet in snippets
         ]
 
-        return snippets_dict
+    def retrieve_snippet(self, snippet_uid: str) -> dict:
+        QUERY = '''
+            SELECT description, snippet_uid, created_at
+            FROM snippets_table
+            
+            WHERE snippets_table.snippet_uid = %(snippet_uid)s;
+        '''
+        response: list = self._fetch(
+            QUERY,
+            snippet_uid=snippet_uid
+        )
+        if not response:
+            return {}
+
+        snippet: dict = response.pop()
+
+        logging.info(f'Fetched {len(snippet)} issues:\n{str(snippet)}')
+
+        return self._get_dict(snippet)
     
     def create_snippet(self, request: 'Request', **dict_args: dict):
         # TODO: сделать список файлов и поменять базу так, чтобы был foreignKey на таблицу files
@@ -93,21 +111,21 @@ class PostgresClient:
                 lang=lang,
                 snippet_uid=snippet_uid
             )
+
         logging.info('Files are handled')
 
     
     def _get_dict(self, snippet: 'Record') -> dict:
+        print('asdasdfsadf', snippet)
         result = {
-            'snippet_id': snippet.snippet_id,
-            'lang': snippet.lang,
+            'snippet_uid': snippet.snippet_uid,
             'description': snippet.description,
-            'files': snippet.files
+            'created_at': snippet.created_at
         }
 
         return result
     
     def _execute(self, query, **kwargs) -> None:
-        print('SDKJHFKSJDFKJSDN', kwargs)
         with self.connection.cursor() as cursor:
             cursor.execute(query, kwargs)
 
