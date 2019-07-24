@@ -41,10 +41,16 @@ class PostgresClient:
 
     def retrieve_snippet(self, snippet_uid: str) -> dict:
         QUERY = '''
-            SELECT description, snippet_uid, created_at
-            FROM snippets_table
-            
-            WHERE snippets_table.snippet_uid = %(snippet_uid)s;
+            SELECT
+                s.description,
+                s.snippet_uid,
+                s.created_at,
+                file.content,
+                file.lang,
+                file.file_id
+            FROM snippets_table AS s
+            INNER JOIN file ON s.snippet_uid = file.snippet_uid
+            WHERE s.snippet_uid = %(snippet_uid)s;
         '''
         response: list = self._fetch(
             QUERY,
@@ -53,11 +59,19 @@ class PostgresClient:
         if not response:
             return {}
 
-        snippet: dict = response.pop()
+        snippet: dict = self._get_dict(response[0])
+        snippet['files'] = []
 
-        logging.info(f'Fetched {len(snippet)} issues:\n{str(snippet)}')
+        for item in response:
+            snippet['files'].append({
+                'file_id': item.file_id,
+                'lang': item.lang,
+                'content': item.content
+            })
 
-        return self._get_dict(snippet)
+        logging.info(f'Fetched snippet with {len(response)} files:\n{str(snippet)}')
+
+        return snippet
     
     def create_snippet(self, request: 'Request', **dict_args: dict):
         # TODO: сделать список файлов и поменять базу так, чтобы был foreignKey на таблицу files
@@ -66,10 +80,6 @@ class PostgresClient:
         snippet_uid = str(uuid4())
 
         description: str = dict_args.get('description')
-        # files: str = dict_args.get('files')
-        # lang: str = dict_args.get('lang')
-
-        # files_list.append(files)
 
         for file in request.files.getlist('files'):
             filename: str = file.filename
@@ -116,7 +126,7 @@ class PostgresClient:
 
     
     def _get_dict(self, snippet: 'Record') -> dict:
-        print('asdasdfsadf', snippet)
+        print(hasattr(snippet, 'sos'))
         result = {
             'snippet_uid': snippet.snippet_uid,
             'description': snippet.description,

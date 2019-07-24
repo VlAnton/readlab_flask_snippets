@@ -19,6 +19,7 @@ def get_snippets():
 @app.route('/snippets', methods=['POST'])
 def create_snippet():
     dict_args = dict()
+    # print(request.form)
 
     for field, value in request.form.items():
         dict_args[field] = value
@@ -30,5 +31,6 @@ def create_snippet():
 @app.route('/snippets/<uid>')
 def retrieve_snippet(uid: str):
     snippet: dict = postgres.retrieve_snippet(uid)
+    print(snippet)
 
     return jsonify(snippet)
