@@ -1,35 +1,43 @@
 import React from 'react';
 import b_ from 'b_';
-import { func } from 'prop-types';
 
 import Snippet from './Snippet'
-// import IssueCard from '../issue-card';
 
+const b = b_.with('issues');
 
-// const b = b_.with('issues');
+class SnippetsList extends React.Component {
+  state = {
+    loaded: false,
+    snippets: []
+  }
 
-// class SnippetsList extends React.Component {
-//   state = {
-//     snippets: []
-//   }
+  async componentDidMount() {
+    const res = await fetch('http://0.0.0.0:5000/api/snippets');
+    const json = await res.json();
 
-//   async componentDidMount() {
-//     const res = await fetch('http://0.0.0.0:5000/api/snippets')
-//   }
-// }
+    this.setState({
+      loaded: true,
+      snippets: json
+    });
+  }
 
-function SnippetsList(props) {
+  render() {
+    const { snippets } = this.state
+
     return (
-    <div>
-      {props.snippets.map(c => <Snippet
-          key={c.snippet_uid}
-          created_at={c.created_at}
-          description={c.description}
-        />)}
-     </div> 
-  );
+      <div className={b()}>
+          {snippets
+          .map(snippet => (
+            <Snippet
+              key={snippet.snippet_uid}
+              created_at={snippet.created_at}
+              description={snippet.description}
+              />
+          ))}
+      </div>
+    );
+  }
 }
-
 
 
 export default SnippetsList;

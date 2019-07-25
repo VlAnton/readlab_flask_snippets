@@ -3,8 +3,9 @@ import {
     BrowserRouter as Router, Switch, Redirect, Route,
 } from 'react-router-dom';
 
-import App from './components/app';
-import ListPage from './pages/list-page/list-page'
+import App from './components/app/app';
+import ListPage from './pages/list-page/list-page';
+
 
 class AppRouter extends React.Component {
     render() {
