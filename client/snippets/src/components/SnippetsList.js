@@ -32,6 +32,7 @@ class SnippetsList extends React.Component {
               key={snippet.snippet_uid}
               created_at={snippet.created_at}
               description={snippet.description}
+              files_count={snippet.files_count}
               />
           ))}
       </div>

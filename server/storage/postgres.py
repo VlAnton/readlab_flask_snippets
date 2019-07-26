@@ -28,11 +28,20 @@ class PostgresClient:
 
     def get_snippets(self) -> list:
         QUERY = '''
-            SELECT * FROM snippets_table;
+            SELECT
+                s.snippet_uid,
+                s.created_at,
+                s.public,
+                s.description,
+                COUNT(f) AS files_count
+            FROM snippets_table AS s
+            INNER JOIN file AS f
+            ON f.snippet_uid = s.snippet_uid GROUP BY s.snippet_uid;
         '''
-        snippets = self._fetch(QUERY)
-        snippets_str = '\n'.join(map(str, snippets))
-        logging.info(f'Fetched {len(snippets)} issues:\n{snippets_str}')
+        snippets: list = self._fetch(QUERY)
+
+        snippets_str: str = '\n'.join(map(str, snippets))
+        logging.info(f'Fetched {len(snippets)} snippets:\n{snippets_str}')
 
         return [
             self._get_dict(snippet)
@@ -45,6 +54,7 @@ class PostgresClient:
                 s.description,
                 s.snippet_uid,
                 s.created_at,
+                s.public,
                 file.content,
                 file.lang,
                 file.file_id
@@ -74,8 +84,6 @@ class PostgresClient:
         return snippet
     
     def create_snippet(self, request: 'Request', **dict_args: dict):
-        # TODO: сделать список файлов и поменять базу так, чтобы был foreignKey на таблицу files
-        # В ней будет хранится список файлов и имена
         files_dict = dict()
         snippet_uid = str(uuid4())
 
@@ -126,12 +134,15 @@ class PostgresClient:
 
     
     def _get_dict(self, snippet: 'Record') -> dict:
-        print(hasattr(snippet, 'sos'))
         result = {
             'snippet_uid': snippet.snippet_uid,
             'description': snippet.description,
-            'created_at': snippet.created_at
+            'created_at': snippet.created_at,
+            'public': snippet.public
         }
+
+        if hasattr(snippet, 'files_count'):
+            result['files_count'] = snippet.files_count
 
         return result
     
