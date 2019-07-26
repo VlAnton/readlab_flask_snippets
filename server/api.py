@@ -42,8 +42,8 @@ def get_post_snippets():
     return jsonify('Snippet is successfully created')
 
 
-@app.route('/api/snippets/<uuid:uid>/')
-@app.route('/api/snippets/<uuid:uid>')
+@app.route('/api/snippets/<uid>/')
+@app.route('/api/snippets/<uid>')
 def retrieve_snippet(uid: str):
     snippet: dict = postgres.retrieve_snippet(uid)
     print(snippet)

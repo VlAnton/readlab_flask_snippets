@@ -5,6 +5,7 @@ import {
 
 import App from './components/app/app';
 import ListPage from './pages/list-page/list-page';
+import DetailPage from './pages/detail-page/detail-page'
 
 
 class AppRouter extends React.Component {
@@ -15,6 +16,7 @@ class AppRouter extends React.Component {
                     <Switch>
                         <Redirect exact from="/" to="/list" />
                         <Route path="/list" component={ListPage} />
+                        <Route path="/snippets/:uid" component={DetailPage} />
                     </Switch>
                 </App>
             </Router>
