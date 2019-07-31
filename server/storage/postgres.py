@@ -84,37 +84,44 @@ class PostgresClient:
         return snippet
     
     def create_snippet(self, request: 'Request', **dict_args: dict):
-        files_dict = dict()
         snippet_uid = str(uuid4())
-
         description: str = dict_args.get('description')
 
-        for file in request.files.getlist('files'):
-            filename: str = file.filename
-            ext: str = filename.split('.').pop()
+        files_dict = dict()
+        files_list: list = dict_args.get('files')
 
+        if not files_list:
+            raise ValueError('no files given')
+
+        for file in files_list:
+            ext: str = file.filename.split('.').pop()
             lang: str = self.ALLOWED_LANGUAGES.get(ext)
 
             if lang:
-                with open(filename, 'r', encoding='utf-8') as f:
-                    file: str = f.read()
+                file: bytes = file.read()
 
-                files_dict[lang] = file
+                files_dict[lang] = file.decode('utf-8')
+
+        if not files_dict:
+            raise ValueError('all files are in incorrect format or else')
         
-        QUERY = '''
-            INSERT INTO snippets_table(description, snippet_uid)
-            VALUES (%(description)s, %(snippet_uid)s);
-        '''
+        try:
+            QUERY = '''
+                INSERT INTO snippets_table(description, snippet_uid)
+                VALUES (%(description)s, %(snippet_uid)s);
+            '''
 
-        self._execute(
-            QUERY,
-            description=description,
-            snippet_uid=snippet_uid
-        )
+            self._execute(
+                QUERY,
+                description=description,
+                snippet_uid=snippet_uid
+            )
+            self._handle_files(files_dict, snippet_uid)
 
-        self._handle_files(files_dict, snippet_uid)
+            logging.info('Snippet is created')
 
-        logging.info('Snippet is created')
+        except BaseException as err:
+            raise ValueError(str(err))
 
     def _handle_files(self, files_dict: dict, snippet_uid: str):
         for lang, content in files_dict.items():

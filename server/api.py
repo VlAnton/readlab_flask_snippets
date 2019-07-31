@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request, redirect, url_for
+from flask import Blueprint, jsonify, request, redirect, url_for, Request
 from psycopg2 import InternalError, ProgrammingError
 
 import logging
@@ -23,7 +23,6 @@ def cors(res):
 def index():
     return redirect(url_for('snippets-api.get_post_snippets'))
 
-
 @app.route('/api/snippets/', methods=['GET', 'POST'])
 @app.route('/api/snippets', methods=['GET', 'POST'])
 def get_post_snippets():
@@ -35,11 +34,20 @@ def get_post_snippets():
     dict_args = dict()
 
     for field, value in request.form.items():
+        print(field, value)
+        if field == 'files':
+            dict_args[field] = request.files.getlist('files')
+            continue
         dict_args[field] = value
 
-    postgres.create_snippet(request, **dict_args)
+    try:
+        postgres.create_snippet(request, **dict_args)
 
-    return jsonify('Snippet is successfully created')
+        return jsonify('Snippet is successfully created')
+
+    except ValueError as err:
+        print(err)
+        return jsonify(str(err))
 
 
 @app.route('/api/snippets/<uid>/')
