@@ -18,35 +18,16 @@ def cors(res):
 
     return res
 
-@app.route('/api/')
-@app.route('/api')
-def index():
-    return redirect(url_for('snippets-api.get_post_snippets'))
-
 @app.route('/api/snippets/', methods=['GET', 'POST'])
 @app.route('/api/snippets', methods=['GET', 'POST'])
 def get_post_snippets():
     if request.method == 'GET':
-        snippets: list = postgres.get_snippets()
-
+        snippets = postgres.get_snippets()
         return jsonify(snippets)
-
-    dict_args = dict()
-
-    for field, value in request.form.items():
-        print(field, value)
-        if field == 'files':
-            dict_args[field] = request.files.getlist('files')
-            continue
-        dict_args[field] = value
-
     try:
-        postgres.create_snippet(request, **dict_args)
-
+        postgres.create_snippet(request, **request.form)
         return jsonify('Snippet is successfully created')
-
-    except ValueError as err:
-        print(err)
+    except Exception as err:
         return jsonify(str(err))
 
 
@@ -54,6 +35,4 @@ def get_post_snippets():
 @app.route('/api/snippets/<uid>')
 def retrieve_snippet(uid: str):
     snippet: dict = postgres.retrieve_snippet(uid)
-    print(snippet)
-
     return jsonify(snippet)

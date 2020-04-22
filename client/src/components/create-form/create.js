@@ -30,14 +30,11 @@ class CreateForm extends React.Component {
     }
 
     onCheck(event) {
-        switch (event.target.checked) {
-            case false:
-                this.setState({isPublic: false});
-                break;
-
-            default:
-                this.setState({isPublic: true});
+        var isPublic = true
+        if (!event.target.checked) {
+            isPublic = false
         }
+        this.setState({ isPublic });
     }
 
     async onSubmit(event) {
@@ -45,8 +42,6 @@ class CreateForm extends React.Component {
         var form = new FormData();
         let body = this.state;
         body['files'] = this.files;
-        
-        let filesCount = 0;
 
         Object.keys(body).forEach(fieldName => {
             if (fieldName === 'files') {
@@ -54,7 +49,6 @@ class CreateForm extends React.Component {
             }
             form.append(fieldName, body[fieldName]);
         });
-        form.forEach(console.log)
 
         await fetch('http://0.0.0.0:5000/api/snippets', {
             method: 'post',
@@ -71,16 +65,6 @@ class CreateForm extends React.Component {
         return (
             <div className={b()}>
                     <form onSubmit={this.onSubmit} method="post" encType="multipart/form-data">
-                    <p>
-                        Add file:
-                        <input
-                            type="file"
-                            className="files"
-                            name="files"
-                            ref={this.files}
-                            // onChange={this.onChange}
-                            multiple />
-                    </p>
                     <p>
                         Enter description: 
                         <input

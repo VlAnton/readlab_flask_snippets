@@ -5,7 +5,8 @@ function Snippet(props) {
         <div className="snippet">
             <p>created at: {props.created_at}</p>
             <p>description: {props.description}</p>
-            <p>files count: {props.files_count}</p><br></br>
+            <p>public?: {props.isPublic}</p>
+            <br></br>
         </div>
     )
 }

@@ -1,5 +1,6 @@
-*.vscode
-*readlab
-*__pycache__
+.vscode
+readlab
+__pycache__
 
-*node_modules
+node_modules
+env
